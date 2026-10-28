@@ -1,0 +1,92 @@
+# ProjectPro
+
+ProjectPro is an AI-powered Kanban and task management dashboard built with Next.js, Supabase, and a local Large Language Model (Qwen 2.5 via Ollama). It allows teams to manage tasks intuitively using conversational AI, automated status tracking, and dynamic report generation.
+
+## 🚀 Key Features
+
+* **Conversational AI Kanban:** Update tasks simply by chatting. The local AI reads your updates and automatically categorizes the status (TODO, IN_PROGRESS, BLOCKED, DONE) and extracts blocker reasons.
+* **Smart Task Detection:** Mention a unique Task ID (e.g., `EUR222`) anywhere in your chat message to instantly apply updates to that specific task without using manual forms.
+* **Universal Search:** Instantly filter tasks by Task ID, Assignee Name, Project Name, Due Date, or Task Title.
+* **Automated AI Reports:** Generate executive summaries and tabular data digests for Daily, Weekly, or Monthly timeframes directly from the raw progress logs.
+* **100% Private AI:** By utilizing Ollama, all natural language processing happens locally on your machine. No sensitive project data is sent to external AI APIs like OpenAI or Anthropic.
+
+## 🛠️ Tech Stack
+
+* **Frontend:** Next.js (React), Tailwind CSS, Lucide Icons
+* **Backend:** Supabase (PostgreSQL)
+* **AI Engine:** Ollama (Qwen 2.5 model)
+
+---
+
+## 💻 Local Setup Instructions
+
+### 1. Prerequisites
+* [Node.js](https://nodejs.org/) installed (v18 or higher recommended).
+* A [Supabase](https://supabase.com/) account.
+* [Ollama](https://ollama.com/) installed on your machine.
+
+### 2. Clone the Repository
+```bash
+git clone https://github.com/shubham-bharatera/projectpro.git
+cd projectpro
+```
+
+### 3. Install Dependencies
+```bash
+npm install
+```
+
+### 4. Database Setup (Supabase)
+Create a new Supabase project and execute the following SQL to set up your schema:
+```sql
+CREATE TABLE projects (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), name TEXT UNIQUE);
+CREATE TABLE assignees (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), name TEXT UNIQUE);
+CREATE TABLE tasks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  task_code TEXT UNIQUE,
+  project_id UUID REFERENCES projects(id),
+  assignee_id UUID REFERENCES assignees(id),
+  title TEXT,
+  status TEXT,
+  start_date DATE,
+  due_date DATE,
+  is_blocked BOOLEAN DEFAULT FALSE,
+  blocker_reason TEXT
+);
+CREATE TABLE progress_updates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  update_text TEXT,
+  contains_blocker BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### 5. Environment Variables
+Create a `.env.local` file in the root of your project and add your Supabase credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 6. Local AI Setup (Ollama + Qwen 2.5)
+ProjectPro requires the Qwen 2.5 model running locally on port 11434 to parse chat messages and generate reports.
+1. Download and install [Ollama](https://ollama.com/).
+2. Open a new terminal window and run:
+   ```bash
+   ollama run qwen2.5
+   ```
+3. Keep Ollama running in the background. The Next.js app will communicate with it via `http://localhost:11434/v1/chat/completions`.
+
+### 7. Run the Application
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
+## 💡 How to Use
+
+1. **Creating Tasks:** On the Home page, fill in the Context Headers (Project, Assignee, Title, Dates) and type your first update in the chat. The AI will create the task and assign it a unique ID (e.g., `PRO392`).
+2. **Updating Tasks:** To update an existing task, leave the Context Headers blank and simply type the Task ID in your message (e.g., *"I finished testing for PRO392"*). The AI will move it to **DONE**.
+3. **Managing the Board:** Click "Show Dashboard" to view your Kanban board. Blocked tasks will be highlighted in red.
+4. **Generating Reports:** Use the "Generate Report" dropdown in the navigation bar. The AI will synthesize all raw progress updates into an executive summary and a formatted table.
